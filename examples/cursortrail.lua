@@ -36,6 +36,7 @@ hl.config({
 
             -- circle cursor
             cursor              = true,
+            cursor_style        = 0,            -- 0..15, see the README
             cursor_size         = 11,
             cursor_ring         = 4,
             cursor_glow         = 1.0,

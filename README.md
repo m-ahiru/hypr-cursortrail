@@ -16,6 +16,7 @@ its own shaders, so it works in every app and follows your colors (e.g. from
   - No spikes on sharp flicks or 180° turns, and round ends.
 - **Circle cursor**: a filled circle with a ring, a soft glow and a drop shadow so it stays
   visible on any background. It grows over links/buttons and while a mouse button is held.
+  16 shapes to pick from (see [Cursor styles](#cursor-styles)).
 - **Styled text cursor**: over text you get an I-beam in the same look, and the trail pauses
   there. Quickly passing over text doesn't count, so the trail doesn't flicker on and off.
 - **Game-friendly**: when a game hides or locks the pointer, nothing is drawn and no extra
@@ -157,6 +158,7 @@ Colors accept any Hyprland color, e.g. `rgb(ff5800)` or `rgba(ff5800ff)`.
 | option | default | description |
 |---|---|---|
 | `cursor` | `true` | replace the cursor with the circle |
+| `cursor_style` | `0` | shape, `0`–`15`, see [Cursor styles](#cursor-styles) |
 | `cursor_size` | `11` | outer radius in px |
 | `cursor_ring` | `4` | ring thickness |
 | `cursor_glow` | `1.0` | glow outside the ring, `0` = off |
@@ -170,6 +172,18 @@ Colors accept any Hyprland color, e.g. `rgb(ff5800)` or `rgba(ff5800ff)`.
 | `cursor_color` | `rgb(ffe600)` | ring and glow |
 | `cursor_center_color` | `rgb(ffffff)` | filled center |
 | `cursor_in_fullscreen` | `true` | keep the circle over fullscreen windows |
+
+### Cursor styles
+
+Pick a shape with `cursor_style`. All of them use the same options: `cursor_size` is the
+outer size, `cursor_ring` the ring/rim thickness, `cursor_color` the ring and glow,
+`cursor_center_color` the center. Glow, shadow, outline, contrast and hover/click scaling work
+with every style.
+
+![cursor styles](assets/cursor-styles.png)
+
+<sub>Rendered with the plugin's shaders at 4× scale and default colors
+(`tools/render-styles.py`).</sub>
 
 ### Text cursor
 

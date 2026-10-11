@@ -71,8 +71,8 @@ static constexpr int    CTRL_SMOOTH_PASSES   = 2;   // [1 2 1]/4 passes over int
 
 // uniform slots
 enum : uint8_t { TU_PROJ = 0, TU_FULLSIZE, TU_PTS, TU_COUNT, TU_HEAD, TU_TAIL, TU_OPACITY, TU_GLOW, TU_COREFRAC, TU_HOT, TU_ADDITIVE };
-enum : uint8_t { CU_PROJ = 0, CU_FULLSIZE, CU_COLOR, CU_CENTERCOLOR, CU_OUTER, CU_RADIUS, CU_RING, CU_GLOW, CU_GLOWSIZE, CU_OUTLINE, CU_SHADOW, CU_SHADOWSIZE };
-enum : uint8_t { XU_PROJ = 0, XU_FULLSIZE, XU_OUTER, XU_RADIUS, XU_CONTRAST };
+enum : uint8_t { CU_PROJ = 0, CU_FULLSIZE, CU_COLOR, CU_CENTERCOLOR, CU_OUTER, CU_RADIUS, CU_RING, CU_GLOW, CU_GLOWSIZE, CU_OUTLINE, CU_SHADOW, CU_SHADOWSIZE, CU_STYLE };
+enum : uint8_t { XU_PROJ = 0, XU_FULLSIZE, XU_OUTER, XU_RADIUS, XU_CONTRAST, XU_RING, XU_STYLE };
 enum : uint8_t { IU_PROJ = 0, IU_FULLSIZE, IU_COLOR, IU_CENTERCOLOR, IU_OUTER, IU_BAR, IU_SERIF, IU_RING, IU_GLOW, IU_GLOWSIZE, IU_SHADOW, IU_SHADOWSIZE, IU_OUTLINE };
 
 // ─────────────────────────────── helpers ────────────────────────────────────
@@ -641,8 +641,8 @@ bool CCursorTrail::ensureGL() {
         return false;
 
     m_trailProg.id    = linkProgram(CURSORCIRCLE_VERT, CURSORTRAIL_FRAG);
-    m_circleProg.id   = linkProgram(CURSORCIRCLE_VERT, CURSORCIRCLE_FRAG);
-    m_contrastProg.id = linkProgram(CURSORCIRCLE_VERT, CURSORCONTRAST_FRAG);
+    m_circleProg.id   = linkProgram(CURSORCIRCLE_VERT, (std::string{CURSORSHAPE_LIB} + CURSORCIRCLE_FRAG).c_str());
+    m_contrastProg.id = linkProgram(CURSORCIRCLE_VERT, (std::string{CURSORSHAPE_LIB} + CURSORCONTRAST_FRAG).c_str());
     m_textProg.id     = linkProgram(CURSORCIRCLE_VERT, CURSORTEXT_FRAG);
     if (!m_trailProg.id || !m_circleProg.id || !m_contrastProg.id || !m_textProg.id) {
         destroyGL();
@@ -652,9 +652,9 @@ bool CCursorTrail::ensureGL() {
 
     for (const char* name : {"uProj", "uFullSize", "uPts", "uCount", "uHeadColor", "uTailColor", "uOpacity", "uGlow", "uCoreFrac", "uHot", "uAdditive"})
         m_trailProg.loc.push_back(glGetUniformLocation(m_trailProg.id, name));
-    for (const char* name : {"uProj", "uFullSize", "uColor", "uCenterColor", "uOuter", "uRadius", "uRing", "uGlow", "uGlowSize", "uOutline", "uShadow", "uShadowSize"})
+    for (const char* name : {"uProj", "uFullSize", "uColor", "uCenterColor", "uOuter", "uRadius", "uRing", "uGlow", "uGlowSize", "uOutline", "uShadow", "uShadowSize", "uStyle"})
         m_circleProg.loc.push_back(glGetUniformLocation(m_circleProg.id, name));
-    for (const char* name : {"uProj", "uFullSize", "uOuter", "uRadius", "uContrast"})
+    for (const char* name : {"uProj", "uFullSize", "uOuter", "uRadius", "uContrast", "uRing", "uStyle"})
         m_contrastProg.loc.push_back(glGetUniformLocation(m_contrastProg.id, name));
     for (const char* name : {"uProj", "uFullSize", "uColor", "uCenterColor", "uOuter", "uBar", "uSerif", "uRing", "uGlow", "uGlowSize", "uShadow", "uShadowSize", "uOutline"})
         m_textProg.loc.push_back(glGetUniformLocation(m_textProg.id, name));
@@ -822,6 +822,7 @@ void CCursorTrail::drawCursor(PHLMONITOR monitor) {
     const float    glowSize = g_config.cursorGlow->value() > 0.F ? std::max(0.F, fval(g_config.cursorGlowSize)) : 0.F;
     const float    shadowSz = g_config.cursorShadow->value() > 0.F ? std::max(0.F, fval(g_config.cursorShadowSize)) : 0.F;
     const float    outer    = radius + std::max({glowSize, shadowSz, 3.F}) + 2.F;
+    const int      style    = std::clamp(sc<int>(g_config.cursorStyle->value()), 0, CURSOR_STYLE_COUNT - 1);
 
     const Vector2D c = (CTCompat::pointer()->position() - monitor->m_position) * scale;
     const float    h = outer * scale;
@@ -844,6 +845,7 @@ void CCursorTrail::drawCursor(PHLMONITOR monitor) {
     glUniform1f(m_circleProg[CU_OUTLINE], std::clamp(fval(g_config.cursorOutline), 0.F, 1.F));
     glUniform1f(m_circleProg[CU_SHADOW], std::clamp(fval(g_config.cursorShadow), 0.F, 1.F));
     glUniform1f(m_circleProg[CU_SHADOWSIZE], shadowSz * scale);
+    glUniform1i(m_circleProg[CU_STYLE], style);
 
     g_pHyprOpenGL->blend(true);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // solid cursor → plain premultiplied over
@@ -856,6 +858,8 @@ void CCursorTrail::drawCursor(PHLMONITOR monitor) {
         glUniform1f(m_contrastProg[XU_OUTER], h);
         glUniform1f(m_contrastProg[XU_RADIUS], radius * scale);
         glUniform1f(m_contrastProg[XU_CONTRAST], contrast);
+        glUniform1f(m_contrastProg[XU_RING], ring * scale);
+        glUniform1i(m_contrastProg[XU_STYLE], style);
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
         uploadAndDraw(monitor, m_contrastProg, GL_TRIANGLE_STRIP);
     }
