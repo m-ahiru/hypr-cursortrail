@@ -25,8 +25,8 @@ its own shaders, so it works in every app and follows your colors (e.g. from
 
 ## Requirements
 
-- **Hyprland 0.55.x**. Plugins are compiled against one Hyprland version. If you update
-  Hyprland, rebuild the plugin (hyprpm and Nix do that for you).
+- **Hyprland 0.55.x or 0.56.x**. Plugins are compiled against one Hyprland version. If you
+  update Hyprland, rebuild the plugin (hyprpm and Nix do that for you).
 - A C++23 compiler (GCC 14+ or Clang 18+), CMake ≥ 3.27, pkg-config.
 - For the circle and text cursor: **software cursors**, `cursor:no_hardware_cursors = 1`.
   With hardware cursors you keep your normal cursor, but the trail still works.
@@ -220,8 +220,9 @@ Hyprland's plugin API changed, the plugin needs an update. Open an issue with yo
 ## Building against a new Hyprland version
 
 1. `hyprpm update` / update your flake inputs.
-2. `make`. If it fails, the plugin API changed. The Hyprland calls are in `src/Trail.cpp`
-   (render pass, pointer, renderer) and `src/main.cpp` (config, events, hooks).
+2. `make`. If it fails, the plugin API changed. Things that moved between versions are wrapped
+   in `src/compat.hpp`; the rest of the Hyprland calls are in `src/Trail.cpp` (render pass,
+   pointer, renderer) and `src/main.cpp` (config, events, hooks).
 3. After pushing a fix, add a pin to `hyprpm.toml`: `["<hyprland commit>", "<this repo's commit>"]`.
 
 ## License

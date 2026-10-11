@@ -38,9 +38,8 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/helpers/Monitor.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
-#include <hyprland/src/managers/PointerManager.hpp>
+#include "compat.hpp"
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #undef protected
@@ -169,11 +168,11 @@ static std::array<float, 3> toRenderRGB(Config::INTEGER hex, bool boost = false)
 // ─────────────────────────────── input ──────────────────────────────────────
 
 void CCursorTrail::onPointerMoved() {
-    if (!g_pPointerManager)
+    if (!CTCompat::pointer())
         return;
 
     const auto now = TrailClock::now();
-    const auto pos = g_pPointerManager->position();
+    const auto pos = CTCompat::pointer()->position();
 
     updateCursorBox();
 
@@ -192,7 +191,7 @@ void CCursorTrail::onPointerMoved() {
     // over a fullscreen game/video: no trail. The circle stays unless cursor_in_fullscreen = false,
     // in which case we also stop scheduling frames so direct scanout / game performance stay untouched.
     if (g_config.hideInFullscreen->value() && g_pCompositor) {
-        const auto mon = g_pCompositor->getMonitorFromVector(pos);
+        const auto mon = CTCompat::monitorAt(pos);
         if (fullscreenOn(mon)) {
             const bool circle = g_config.cursorEnabled->value() && g_config.cursorInFullscreen->value();
             const bool dirty  = !m_samples.empty() || !m_lastDamaged.empty();
@@ -338,7 +337,7 @@ void CCursorTrail::buildPoints(TrailClock::time_point now) {
     m_trailBox = {};
 
     prune(now);
-    if (m_samples.empty() || !g_pPointerManager || !g_config.enabled->value() || cursorHidden())
+    if (m_samples.empty() || !CTCompat::pointer() || !g_config.enabled->value() || cursorHidden())
         return;
 
     const float life = lifetimeSeconds();
@@ -352,7 +351,7 @@ void CCursorTrail::buildPoints(TrailClock::time_point now) {
     std::vector<SCtrl> ctrl;
     ctrl.reserve(m_samples.size() + 2);
 
-    ctrl.push_back({g_pPointerManager->position(), 0.F, m_samples.back().speed});
+    ctrl.push_back({CTCompat::pointer()->position(), 0.F, m_samples.back().speed});
 
     for (auto it = m_samples.rbegin(); it != m_samples.rend(); ++it) {
         const float age = secondsBetween(it->time, now) / life;
@@ -425,11 +424,11 @@ float CCursorTrail::cursorOuterRadius() const {
 }
 
 void CCursorTrail::updateCursorBox() {
-    if (!g_config.cursorEnabled->value() || !g_pPointerManager) {
+    if (!g_config.cursorEnabled->value() || !CTCompat::pointer()) {
         m_cursorBox = {};
         return;
     }
-    const auto   pos = g_pPointerManager->position();
+    const auto   pos = CTCompat::pointer()->position();
     const double r   = cursorOuterRadius();
     m_cursorBox      = CBox{pos.x - r, pos.y - r, r * 2, r * 2}.round();
 }
@@ -486,7 +485,7 @@ void CCursorTrail::flushDamage() {
 }
 
 bool CCursorTrail::fullscreenOn(PHLMONITOR monitor) const {
-    return monitor && g_config.hideInFullscreen->value() && monitor->m_activeWorkspace && monitor->m_activeWorkspace->m_hasFullscreenWindow &&
+    return monitor && g_config.hideInFullscreen->value() && CTCompat::hasFullscreen(monitor->m_activeWorkspace) &&
         !monitor->m_activeSpecialWorkspace;
 }
 
@@ -519,7 +518,7 @@ void CCursorTrail::onRenderLastMoment(PHLMONITOR monitor) {
     // or hypr-dynamic-cursors' own element). Not found = hardware cursor / cursor hidden / other monitor.
     auto&                 pass      = g_pHyprRenderer->m_renderPass;
     auto&                 elems     = pass.m_passElements;
-    const auto            cursorTex = g_pPointerManager ? g_pPointerManager->getCurrentCursorTexture() : nullptr;
+    const auto            cursorTex = CTCompat::pointer() ? CTCompat::pointer()->getCurrentCursorTexture() : nullptr;
     std::optional<size_t> cursorIdx;
 
     for (size_t i = elems.size(); i-- > 0;) {
@@ -541,9 +540,9 @@ void CCursorTrail::onRenderLastMoment(PHLMONITOR monitor) {
     // has no cursor element means the cursor is hidden (pointer locked in a game, inactive timeout, ...)
     // → no trail. With hardware cursors we can't tell this way and rely on the other checks.
     static auto PNOHW = CConfigValue<Config::INTEGER>("cursor:no_hardware_cursors");
-    if (g_pPointerManager && *PNOHW == 1) {
+    if (CTCompat::pointer() && *PNOHW == 1) {
         const CBox monLogical = {monitor->m_position, monitor->m_size};
-        if (monLogical.containsPoint(g_pPointerManager->position())) {
+        if (monLogical.containsPoint(CTCompat::pointer()->position())) {
             const bool hidden = !cursorIdx.has_value();
             if (hidden && !m_noCursorDrawn) {
                 clear();
@@ -814,7 +813,7 @@ void CCursorTrail::drawTrail(PHLMONITOR monitor) {
 }
 
 void CCursorTrail::drawCursor(PHLMONITOR monitor) {
-    if (!monitor || !g_pPointerManager || !ensureGL() || g_pHyprRenderer->m_renderData.damage.empty())
+    if (!monitor || !CTCompat::pointer() || !ensureGL() || g_pHyprRenderer->m_renderData.damage.empty())
         return;
 
     const float    scale    = sc<float>(monitor->m_scale);
@@ -824,7 +823,7 @@ void CCursorTrail::drawCursor(PHLMONITOR monitor) {
     const float    shadowSz = g_config.cursorShadow->value() > 0.F ? std::max(0.F, fval(g_config.cursorShadowSize)) : 0.F;
     const float    outer    = radius + std::max({glowSize, shadowSz, 3.F}) + 2.F;
 
-    const Vector2D c = (g_pPointerManager->position() - monitor->m_position) * scale;
+    const Vector2D c = (CTCompat::pointer()->position() - monitor->m_position) * scale;
     const float    h = outer * scale;
     const float    x = sc<float>(c.x), y = sc<float>(c.y);
 
@@ -864,7 +863,7 @@ void CCursorTrail::drawCursor(PHLMONITOR monitor) {
 
 // Styled I-beam: same colors, glow and shadow as the circle. Hotspot = center of the beam.
 void CCursorTrail::drawTextCursor(PHLMONITOR monitor) {
-    if (!monitor || !g_pPointerManager || !ensureGL() || g_pHyprRenderer->m_renderData.damage.empty())
+    if (!monitor || !CTCompat::pointer() || !ensureGL() || g_pHyprRenderer->m_renderData.damage.empty())
         return;
 
     const float    scale    = sc<float>(monitor->m_scale);
@@ -877,7 +876,7 @@ void CCursorTrail::drawTextCursor(PHLMONITOR monitor) {
     const float    shadowSz = g_config.cursorShadow->value() > 0.F ? std::max(0.F, fval(g_config.cursorShadowSize)) * 0.9F : 0.F;
     const float    outer    = halfH + std::max({glowSize, shadowSz, 3.F}) + 2.F;
 
-    const Vector2D c = (g_pPointerManager->position() - monitor->m_position) * scale;
+    const Vector2D c = (CTCompat::pointer()->position() - monitor->m_position) * scale;
     const float    h = outer * scale;
     const float    x = sc<float>(c.x), y = sc<float>(c.y);
 

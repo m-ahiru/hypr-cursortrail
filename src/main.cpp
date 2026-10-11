@@ -6,7 +6,7 @@
 #include <hyprland/src/includes.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/event/EventBus.hpp>
-#include <hyprland/src/managers/CursorManager.hpp>
+#include "compat.hpp"
 #include <hyprland/src/desktop/view/WLSurface.hpp>
 #include <hyprland/src/plugins/HookSystem.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -133,10 +133,10 @@ static void hkSetCursorSurface(void* thisptr, SP<Desktop::View::CWLSurface> surf
 }
 
 static void installShapeHooks() {
-    g_setCursorFromNameHook = hookChecked(pmfAddress(&CCursorManager::setCursorFromName),
-                                          "_ZN14CCursorManager17setCursorFromNameERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE", rc<void*>(&hkSetCursorFromName));
-    g_setCursorSurfaceHook  = hookChecked(pmfAddress(&CCursorManager::setCursorSurface),
-                                          "_ZN14CCursorManager16setCursorSurfaceEN9Hyprutils6Memory14CSharedPointerIN7Desktop4View10CWLSurfaceEEERKNS0_4Math8Vector2DE",
+    g_setCursorFromNameHook = hookChecked(pmfAddress(&CTCompat::CursorManager::setCursorFromName),
+                                          CTCompat::SET_CURSOR_FROM_NAME_SYM, rc<void*>(&hkSetCursorFromName));
+    g_setCursorSurfaceHook  = hookChecked(pmfAddress(&CTCompat::CursorManager::setCursorSurface),
+                                          CTCompat::SET_CURSOR_SURFACE_SYM,
                                           rc<void*>(&hkSetCursorSurface));
 
     g_shapeHooksOk = g_setCursorFromNameHook && g_setCursorSurfaceHook;
