@@ -1,0 +1,16 @@
+[repository]
+name = "hypr-cursortrail"
+authors = ["mahiru"]
+# Hyprland's plugin API changes between releases. Pins map a Hyprland commit to the
+# commit of this repo that builds against it, so `hyprpm update` picks the right one.
+# Format: ["<hyprland commit>", "<hypr-cursortrail commit>"],  # Hyprland version
+commit_pins = [
+]
+
+[cursortrail]
+description = "osu!-style glowing cursor trail and circle cursor"
+authors = ["mahiru"]
+output = "build/libcursortrail.so"
+build = [
+    "make all",
+]
