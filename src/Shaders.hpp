@@ -15,13 +15,13 @@ precision highp float;
 
 #define MAX_POINTS 64
 
-uniform vec4  uPts[MAX_POINTS]; // x, y (monitor px), radius (px), age (0 head .. 1 tail)
+uniform vec4  uPts[MAX_POINTS]; // x, y (monitor px), glow radius (px), age (0 head .. 1 tail)
+uniform float uCoreR[MAX_POINTS]; // core radius (px); the glow shrinks towards the head, the core doesn't
 uniform int   uCount;
 uniform vec3  uHeadColor;
 uniform vec3  uTailColor;
 uniform float uOpacity;
 uniform float uGlow;     // glow strength (0 = none)
-uniform float uCoreFrac; // core width / full width
 uniform float uHot;      // push the core towards white
 uniform int   uAdditive;
 
@@ -41,7 +41,9 @@ void main() {
         float L2 = dot(AB, AB);
         float h  = L2 > 1e-6 ? clamp(dot(vUV - P0.xy, AB) / L2, 0.0, 1.0) : 0.0;
         float r  = mix(P0.z, P1.z, h);
-        float d  = length(vUV - (P0.xy + AB * h)) / max(r, 1e-3); // 0 spine .. 1 glow edge
+        float rc = mix(uCoreR[i], uCoreR[i + 1], h);
+        float dp = length(vUV - (P0.xy + AB * h));
+        float d  = dp / max(r, 1e-3); // 0 spine .. 1 glow edge
 
         if (d >= 1.0)
             continue;
@@ -49,7 +51,7 @@ void main() {
         float age  = mix(P0.w, P1.w, h);
         float life = clamp(1.0 - age, 0.0, 1.0);
 
-        float core = 1.0 - smoothstep(uCoreFrac * 0.45, uCoreFrac, d);
+        float core = 1.0 - smoothstep(rc * 0.45, rc, dp);
 
         const float K = 5.0;
         float halo = (exp(-d * d * K) - exp(-K)) / (1.0 - exp(-K));
