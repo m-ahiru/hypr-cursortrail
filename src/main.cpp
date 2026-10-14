@@ -172,6 +172,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     registerConfig();
 
     g_trail = makeUnique<CCursorTrail>();
+    g_trail->preloadKeptImages(); // so the first screenshot doesn't read the theme mid-frame
     installShapeHooks();
 
     static auto onMove = Event::bus()->m_events.input.mouse.move.listen([](Vector2D, Event::SCallbackInfo&) {
