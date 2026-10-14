@@ -52,6 +52,7 @@ hl.config({
             cursor_in_fullscreen = true,
 
             -- text cursor
+            cursor_keep         = "crosshair,cross,tcross,cross_reverse,diamond_cross", -- never replaced (screenshots, ...)
             cursor_keep_text    = true,
             cursor_text_delay   = 200,
             cursor_text_style   = true,

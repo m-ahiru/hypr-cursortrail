@@ -215,8 +215,8 @@ void CCursorTrail::onPointerMoved() {
         return;
     }
 
-    // over text (after the dwell delay): stop recording, but let what's there fade out naturally
-    if (textMode()) {
+    // over text (after the dwell delay) or a kept shape: stop recording, let what's there fade out
+    if (textMode() || m_shape == SHAPE_KEEP) {
         queueDamage();
         return;
     }
@@ -265,8 +265,31 @@ void CCursorTrail::onCursorShape(const std::string& shape) {
 
     m_appHidCursor = false; // a named shape is always visible
 
+    // cursor_keep: comma separated shape names whose real cursor always stays (crosshair while
+    // taking a screenshot, ...)
+    auto kept = [&] {
+        const std::string list = g_config.cursorKeep->value();
+        size_t            start = 0;
+        while (start <= list.size()) {
+            size_t end = list.find(',', start);
+            if (end == std::string::npos)
+                end = list.size();
+            std::string_view name{list.data() + start, end - start};
+            while (!name.empty() && std::isspace(sc<unsigned char>(name.front())))
+                name.remove_prefix(1);
+            while (!name.empty() && std::isspace(sc<unsigned char>(name.back())))
+                name.remove_suffix(1);
+            if (!name.empty() && name == shape)
+                return true;
+            start = end + 1;
+        }
+        return false;
+    };
+
     const eShape prev = m_shape;
-    if (std::ranges::find(TEXT, shape) != TEXT.end())
+    if (kept())
+        m_shape = SHAPE_KEEP;
+    else if (std::ranges::find(TEXT, shape) != TEXT.end())
         m_shape = SHAPE_TEXT;
     else if (std::ranges::find(LINKS, shape) != LINKS.end())
         m_shape = SHAPE_LINK;
@@ -497,7 +520,7 @@ bool CCursorTrail::wantCircle(PHLMONITOR monitor) const {
         return false;
     if (fullscreenOn(monitor) && !g_config.cursorInFullscreen->value())
         return false;
-    return !textMode();
+    return !textMode() && m_shape != SHAPE_KEEP;
 }
 
 bool CCursorTrail::wantStyledText(PHLMONITOR monitor) const {

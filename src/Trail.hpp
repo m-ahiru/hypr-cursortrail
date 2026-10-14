@@ -80,6 +80,7 @@ class CCursorTrail {
         SHAPE_NORMAL = 0, // arrow, resize, move, app-supplied images, ...
         SHAPE_LINK,       // pointer / hand: something clickable → circle grows a bit
         SHAPE_TEXT,       // I-beam: real cursor stays, trail pauses
+        SHAPE_KEEP,       // cursor_keep (crosshair, ...): real cursor stays right away, trail pauses
     };
     eShape                 m_shape = SHAPE_NORMAL;
     bool                   m_appHidCursor    = false; // app set an empty cursor (games while playing)

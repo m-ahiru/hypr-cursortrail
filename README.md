@@ -189,6 +189,7 @@ with every style.
 
 | option | default | description |
 |---|---|---|
+| `cursor_keep` | `crosshair,cross,tcross,cross_reverse,diamond_cross` | cursor shapes that are never replaced (e.g. the crosshair while taking a screenshot); the trail pauses there too |
 | `cursor_keep_text` | `true` | over text: show an I-beam and pause the trail (`false` = circle everywhere) |
 | `cursor_text_delay` | `200` | ms the pointer has to stay over text before that kicks in |
 | `cursor_text_style` | `true` | draw the I-beam in the circle's style (`false` = your theme's I-beam) |
