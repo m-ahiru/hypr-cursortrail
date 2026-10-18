@@ -190,6 +190,8 @@ with every style.
 | option | default | description |
 |---|---|---|
 | `cursor_keep` | `crosshair,cross,tcross,cross_reverse,diamond_cross` | cursor shapes that are never replaced (e.g. the crosshair while taking a screenshot); the trail pauses there too. Also works for apps that send the theme's image instead of the name (slurp) |
+| `debug` | `false` | show a notification whenever an app sends its own cursor image: size, the theme images found, and whether it was kept |
+| `cursor_keep_linger` | `500` | ms without any cursor after a kept one ends, so a screenshot taken right after slurp has no cursor in it (software cursors are part of screenshots); `0` = off |
 | `cursor_keep_text` | `true` | over text: show an I-beam and pause the trail (`false` = circle everywhere) |
 | `cursor_text_delay` | `200` | ms the pointer has to stay over text before that kicks in |
 | `cursor_text_style` | `true` | draw the I-beam in the circle's style (`false` = your theme's I-beam) |
@@ -203,6 +205,13 @@ The plugin runs inside Hyprland, not inside the game. It doesn't touch game memo
 only reads the pointer position the compositor already has and draws on top of the final image,
 like Hyprland's own borders and animations. No guarantees, but there's nothing for a
 game-side anti-cheat to see.
+
+**The crosshair (slurp, screenshots) still gets replaced.**
+Turn on `debug = true` and start slurp. If the notification says `theme 'default'` and the match
+is well below 100 %, `XCURSOR_THEME` / `XCURSOR_SIZE` aren't set in your Hyprland session, so
+slurp can't find your theme and draws a built-in arrow instead of a crosshair. Set them for the
+session, e.g. `env = XCURSOR_THEME,Vimix-cursors` and `env = XCURSOR_SIZE,32` (Lua:
+`hl.env("XCURSOR_THEME", "Vimix-cursors")`).
 
 **Some apps/games still show their own cursor.**
 Games often hide the system cursor and draw their own inside the game. That's part of the
